@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="NavigateAndSignal">
+      <RequireCapability capability="navigate"/>
+      <ExecuteAction id="go_a" capability="navigate" x="2.0" y="1.0" z="0.0" frame="local_enu"/>
+      <EmitEvent event="arrived_a" payload="{&quot;waypoint&quot;:&quot;A&quot;}"/>
+      <WaitEvent event="release_a"/>
+      <ExecuteAction id="go_b" capability="navigate" x="-1.0" y="0.5" z="0.0" frame="local_enu"/>
+      <EmitEvent event="mission_done"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

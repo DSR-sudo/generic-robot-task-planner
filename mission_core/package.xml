@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>mission_core</name>
+  <version>0.1.0</version>
+  <description>Platform-independent XML mission orchestration core.</description>
+  <maintainer email="maintainer@example.invalid">mission-platform</maintainer>
+  <license>Apache-2.0</license>
+  <depend>tinyxml2</depend>
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>

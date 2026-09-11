@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>mission_sim</name>
+  <version>0.1.0</version>
+  <description>Deterministic simulator for mission_core actions and safety flows.</description>
+  <maintainer email="maintainer@example.invalid">mission-platform</maintainer>
+  <license>Apache-2.0</license>
+  <build_depend>mission_core</build_depend>
+  <exec_depend>mission_core</exec_depend>
+  <export>
+    <build_type>cmake</build_type>
+  </export>
+</package>

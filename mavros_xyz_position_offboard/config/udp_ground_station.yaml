@@ -1,0 +1,125 @@
+mavros_native_xyz_position:
+  ros__parameters:
+    udp:
+      # 是否启用与地面站的 UDP 通信。
+      enabled: true
+      # 本机 UDP 监听地址。
+      bind_ip: 0.0.0.0
+      # 本机 UDP 监听端口。
+      bind_port: 5005
+      # 地面站 UDP 目标地址。
+      remote_ip: 192.168.10.59
+      # 地面站 UDP 目标端口。
+      remote_port: 5005
+      # 仅接受此 IP 地址发来的 UDP 数据报。
+      whitelist_ip: 192.168.10.59
+      # 仅接受此端口发来的 UDP 数据报。
+      whitelist_port: 5005
+      # 通用消息 inbox 的最大容量。
+      inbox_capacity: 64
+      # 通用消息在行为树上下文中的最大存活时间，单位：秒。
+      message_ttl_s: 2.0
+
+    safety:
+      # 静态部署参数：YAML/launch 值覆盖应用 CLI 默认值，修改后必须重启节点。
+      # 测距和光流 topic 由 launch/CLI 配置，消息来源是否可用由运行时健康检查判断。
+      # MAVROS 状态/心跳消息的最大新鲜时间，单位：秒。
+      state_timeout_s: 1.5
+      # MAVROS SYS_STATUS 消息的最大新鲜时间，单位：秒。
+      sys_status_timeout_s: 2.0
+      # 电池遥测消息的最大新鲜时间，单位：秒。
+      battery_timeout_s: 5.0
+      # MAVROS 落地状态消息的最大新鲜时间，单位：秒。
+      landed_timeout_s: 2.0
+      # 本地位姿消息的最大新鲜时间，单位：秒。
+      local_pose_timeout_s: 0.5
+      # 本地速度消息的最大新鲜时间，单位：秒。
+      local_velocity_timeout_s: 0.5
+      # 飞控估计器状态消息的最大新鲜时间，单位：秒。
+      estimator_timeout_s: 1.5
+      # 向下测距消息的最大新鲜时间，单位：秒。
+      range_timeout_s: 0.35
+      # 光流消息的最大新鲜时间，单位：秒。
+      optical_flow_timeout_s: 0.35
+      # 飞行中传感器健康异常允许持续的宽限时间，单位：秒。
+      sensor_loss_grace_s: 2.0
+      # LCP 状态消息的最大新鲜时间，单位：秒。
+      lcp_status_timeout_s: 0.75
+      # LCP 里程计消息的最大新鲜时间，单位：秒。
+      lcp_odometry_timeout_s: 0.75
+      # LCP 初始化就绪所需的连续健康样本数。
+      lcp_ready_samples: 1
+
+      # 测距值接近边界时允许的额外误差，单位：米。
+      range_boundary_tolerance_m: 0.001
+      # 无视传感器声明下限时仍采用的最小可接受测距值，单位：米。
+      configured_min_range_m: 0.02
+      # 可接受的最大测距值，单位：米。
+      configured_max_range_m: 12.0
+      # 在跳变时间窗内允许的最大测距变化，单位：米。
+      max_range_jump_m: 0.30
+      # 判定测距跳变使用的时间窗，单位：秒。
+      jump_window_s: 0.30
+      # 跳变后恢复测距有效性所需的一致样本数。
+      jump_recovery_samples: 2
+      # 跳变恢复样本与候选值之间允许的偏差，单位：米。
+      jump_settle_tolerance_m: 0.06
+      # 预检接受光流数据所需的最小质量值。
+      min_optical_flow_quality: 20
+
+      # 起飞前允许飞行所需的最低电池电压，单位：伏特。
+      min_battery_voltage_v: 13.0
+      # 起飞前允许飞行所需的最低电池剩余电量比例，范围为 0.001 到 1。
+      min_battery_fraction: 0.01
+
+      # 预检阶段允许的最大水平速度，单位：米/秒。
+      max_preflight_horizontal_speed_m_s: 0.20
+      # 预检阶段允许的最大垂直速度，单位：米/秒。
+      max_preflight_vertical_speed_m_s: 0.20
+      # 正常飞行阶段允许的最大水平速度，单位：米/秒。
+      max_flight_horizontal_speed_m_s: 15.0
+      # 正常飞行阶段允许的最大垂直速度，单位：米/秒。
+      max_flight_vertical_speed_m_s: 0.80
+      # 悬停阶段允许相对指令点的最大水平漂移，单位：米。
+      max_flight_horizontal_drift_m: 1.0
+      # 爬升阶段允许的最大水平速度，单位：米/秒。
+      climb_horizontal_speed_limit_m_s: 10.0
+      # 爬升阶段允许相对指令点的最大水平漂移，单位：米。
+      climb_horizontal_drift_limit_m: 3.0
+      # 判定悬停相关状态所需的最小离地高度，单位：米。
+      hover_min_height_m: 0.20
+
+      # 位置设定点发布频率，单位：赫兹。
+      publish_rate_hz: 20.0
+      # 进入任务前持续发送设定点的预热时间，单位：秒。
+      setpoint_warmup_s: 2.0
+      # Z 轴设定点轨迹允许的最大速度，单位：米/秒。
+      max_z_setpoint_rate_m_s: 100.0
+      # Z 轴设定点轨迹允许的最大加速度，单位：米/秒²。
+      max_z_setpoint_accel_m_s2: 50.0
+      # XY 目标轨迹允许的最大速度，单位：米/秒。
+      target_xy_max_speed_m_s: 8.5
+      # XY 目标轨迹允许的最大加速度，单位：米/秒²。
+      target_xy_max_accel_m_s2: 5.0
+      # 目标点到达判定使用的位置容差，单位：米。
+      target_tolerance_m: 0.20
+      # 触地/下降完成判定使用的 Z 轴容差，单位：米。
+      touchdown_z_tolerance_m: 0.20
+
+      # 最大允许任务时长，单位：秒；超时由 mission_core 安全监督器处理。
+      max_flight_seconds: 120.0
+
+      # 认为光流对水平定位有效所需的最小测距高度，单位：米。
+      flow_effective_min_height_m: 0.15
+      # 认为光流对水平定位有效所需的最小质量值。
+      flow_effective_min_quality: 20
+      # true 表示忽略传感器声明的最小量程，仅使用 configured_min_range_m。
+      ignore_declared_min_range: true
+
+    z:
+      # true 时优先使用测距高度，false 时优先使用本地位姿高度。
+      prefer_range: true
+      # 高度来源数据的最大新鲜时间，单位：秒。
+      source_timeout_s: 0.5
+      # 本地位姿高度与测距高度的最大允许差值，单位：米。
+      range_cross_check_max_delta_m: 0.30

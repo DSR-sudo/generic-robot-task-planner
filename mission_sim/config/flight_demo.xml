@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <Sequence name="FlightCapabilities">
+      <RequireCapability capability="takeoff"/>
+      <ExecuteAction id="takeoff" capability="takeoff" height_m="1.4"/>
+      <ExecuteAction id="hold" capability="hold" seconds="1.0"/>
+      <ExecuteAction id="land" capability="land"/>
+    </Sequence>
+  </BehaviorTree>
+</root>

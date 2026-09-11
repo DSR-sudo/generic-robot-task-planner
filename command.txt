@@ -1,0 +1,28 @@
+# Build the platform-neutral core and simulator without ROS.
+cmake -S mission_core -B /tmp/mission_core_build
+cmake --build /tmp/mission_core_build -j2
+ctest --test-dir /tmp/mission_core_build --output-on-failure
+
+cmake -S mission_sim -B /tmp/mission_sim_build
+cmake --build /tmp/mission_sim_build -j2
+ctest --test-dir /tmp/mission_sim_build --output-on-failure
+
+# Build and test the ROS/PX4 adapter.
+source /opt/ros/jazzy/setup.bash
+source /home/pi/LSLIDARN10P/install/setup.bash
+colcon build --symlink-install \
+  --packages-select mission_core mission_sim mavros_xyz_position_offboard \
+  --parallel-workers 1 --event-handlers console_direct+
+colcon test --packages-select mavros_xyz_position_offboard \
+  --event-handlers console_direct+
+colcon test-result --all --verbose
+
+# Monitoring mode: no setpoints, mode changes, or ARM requests.
+source install/setup.bash
+ros2 launch mavros_xyz_position_offboard flight_stack.launch.py \
+  enable_control:=false
+
+# Controlled PX4 mission. Complete SITL and no-prop checks first.
+ros2 launch mavros_xyz_position_offboard flight_stack.launch.py \
+  enable_control:=true \
+  mission_xml_path:=/absolute/path/to/mission.xml

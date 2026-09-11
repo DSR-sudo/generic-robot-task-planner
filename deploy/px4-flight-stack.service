@@ -1,0 +1,23 @@
+[Unit]
+Description=PX4 bounded flight ROS 2 stack
+Wants=network-online.target NetworkManager-wait-online.service
+After=network-online.target NetworkManager-wait-online.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+SupplementaryGroups=dialout
+WorkingDirectory=/home/pi/generic-robot-task-planner
+Environment=HOME=/home/pi
+Environment=ROS_LOG_DIR=/home/pi/.ros/log
+ExecStartPre=/usr/bin/nm-online --quiet --timeout=120
+ExecStart=/home/pi/generic-robot-task-planner/deploy/px4-flight-stack.sh
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGINT
+TimeoutStopSec=30s
+SyslogIdentifier=px4-flight-stack
+
+[Install]
+WantedBy=multi-user.target
