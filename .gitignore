@@ -4,5 +4,9 @@
 # Generated PX4 and ROS artifacts at the repository root
 /artifacts/
 /build/
+/build-current/
+/build-*/
 /install/
+/install-current/
+/install-*/
 /log/

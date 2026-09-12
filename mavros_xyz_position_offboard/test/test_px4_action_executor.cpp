@@ -4,6 +4,7 @@
 
 #include "mavros_xyz_position_offboard/common/cli.hpp"
 #include "mavros_xyz_position_offboard/execution/px4_action_executor.hpp"
+#include "mission_core/safety.hpp"
 
 namespace
 {
@@ -89,6 +90,36 @@ TEST(Px4ActionExecutorTest, AirborneCancellationKeepsSafetyLandingActive)
   executor.cancel("navigate", 1.1);
   EXPECT_EQ(executor.feedback("navigate").status, mission_core::ActionStatus::running);
   EXPECT_EQ(executor.feedback("navigate").capability, "land");
+}
+
+TEST(Px4ActionExecutorTest, UnknownStartupStatePausesInsteadOfFailingMission)
+{
+  auto node = std::make_shared<rclcpp::Node>(
+    "px4_startup_test", rclcpp::NodeOptions().use_global_arguments(false));
+  mavros_xyz_position_offboard::offboard::Offboard offboard(*node, options());
+  mavros_xyz_position_offboard::execution::Px4ActionExecutor executor(offboard);
+  mission_core::SafetySupervisor safety;
+  executor.observe({}, 0.0);
+  EXPECT_FALSE(executor.world().airborne);
+  EXPECT_FALSE(executor.world().landed);
+  EXPECT_EQ(safety.evaluate(executor.world(), executor.capabilities(executor.world()), {}).action,
+    mission_core::SafetyAction::pause);
+
+  executor.observe(telemetry(), 1.0);
+  EXPECT_TRUE(executor.capabilities(executor.world()).available("takeoff"));
+  EXPECT_EQ(safety.evaluate(executor.world(), executor.capabilities(executor.world()), {}).action,
+    mission_core::SafetyAction::allow);
+
+  auto flying = telemetry();
+  flying.landed_state = 2;
+  executor.observe(flying, 2.0);
+  EXPECT_TRUE(executor.world().airborne);
+  executor.observe({}, 3.0);
+  EXPECT_TRUE(executor.world().airborne);
+  EXPECT_EQ(safety.evaluate(executor.world(), executor.capabilities(executor.world()), {}).action,
+    mission_core::SafetyAction::emergency);
+  executor.observe(telemetry(), 4.0);
+  EXPECT_FALSE(executor.world().airborne);
 }
 
 }  // namespace

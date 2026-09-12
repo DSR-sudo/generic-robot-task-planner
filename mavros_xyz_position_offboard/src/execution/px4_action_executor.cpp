@@ -46,7 +46,11 @@ void Px4ActionExecutor::observe(const common::Telemetry & telemetry, const doubl
   world_.armed = telemetry.armed;
   world_.mode = telemetry.mode;
   world_.landed = telemetry.landed_state == common::MAV_LANDED_STATE_ON_GROUND;
-  world_.airborne = !world_.landed || telemetry.armed;
+  // MAV_LANDED_STATE_UNDEFINED (0) is not evidence of flight at startup.
+  // Preserve an observed airborne state through unknown samples, until landed.
+  const bool observed_airborne = telemetry.landed_state >= 2 && telemetry.landed_state <= 4;
+  world_.airborne = telemetry.armed || observed_airborne ||
+    (!world_.landed && world_.airborne);
   world_.position.frame = "local_enu";
   world_.position.x_m = telemetry.local_x_m;
   world_.position.y_m = telemetry.local_y_m;
