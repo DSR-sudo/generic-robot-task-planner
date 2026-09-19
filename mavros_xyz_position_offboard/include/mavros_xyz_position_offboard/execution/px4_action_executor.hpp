@@ -43,6 +43,7 @@ private:
     mission_core::ActionIntent intent{};
     mission_core::ActionFeedback feedback{};
     std::optional<mission_core::Position> target{};
+    std::optional<mission_core::Position> pause_target{};
     std::optional<double> duration_s{};
     double started_at_s{0.0};
     double paused_at_s{0.0};
@@ -71,6 +72,7 @@ private:
   mission_core::CapabilityRegistry registry_{};
   mission_core::WorldState world_{};
   std::optional<ActiveAction> active_{};
+  std::optional<mission_core::Position> takeoff_origin_{};
   double target_tolerance_m_{0.04};
   double offboard_warmup_s_{2.0};
 };

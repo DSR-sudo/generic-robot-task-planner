@@ -118,8 +118,9 @@ mission_core::ValidationResult Px4ActionExecutor::validate_position_action(
     }
   }
   const auto frame = intent.parameters.find("frame");
-  if (frame != intent.parameters.end() && frame->second != "local_enu") {
-    return {false, "only local_enu is supported by the PX4 adapter"};
+  if (frame != intent.parameters.end() && frame->second != "local_enu" &&
+    frame->second != "takeoff_flu") {
+    return {false, "frame must be local_enu or takeoff_flu"};
   }
   return {true, {}};
 }
@@ -221,6 +222,17 @@ bool Px4ActionExecutor::submit(
   if (intent.capability == "navigate") {
     mission_core::Position target;
     if (!parse_position(intent, target, reason)) {return false;}
+    const auto frame = intent.parameters.find("frame");
+    if (frame != intent.parameters.end() && frame->second == "takeoff_flu") {
+      if (!takeoff_origin_) {reason = "takeoff_flu requires a takeoff origin"; return false;}
+      const auto & origin = *takeoff_origin_;
+      const double c = std::cos(origin.yaw_rad), s = std::sin(origin.yaw_rad);
+      const double forward = target.x_m, left = target.y_m;
+      target.x_m = origin.x_m + c * forward - s * left;
+      target.y_m = origin.y_m + s * forward + c * left;
+      target.z_m += origin.z_m;
+      target.yaw_rad += origin.yaw_rad;
+    }
     action.target = target;
   } else if (intent.capability == "takeoff") {
     double height = 0.0;
@@ -228,6 +240,7 @@ bool Px4ActionExecutor::submit(
       if (reason.empty()) {reason = "takeoff height_m must be positive";}
       return false;
     }
+    takeoff_origin_ = world_.position;
     action.target = world_.position;
     action.target->z_m += height;
     action.target->valid = true;
@@ -257,7 +270,10 @@ void Px4ActionExecutor::cancel(const std::string & action_id, const double now_s
 void Px4ActionExecutor::pause(const std::string & action_id, const double now_s)
 {
   if (active_ && active_->intent.action_id == action_id && !active_->safety_land) {
-    if (!active_->paused) {active_->paused_at_s = now_s;}
+    if (!active_->paused) {
+      active_->paused_at_s = now_s;
+      if (world_.position.valid) {active_->pause_target = world_.position;}
+    }
     active_->paused = true;
     active_->feedback.status = mission_core::ActionStatus::paused;
     active_->feedback.at_s = now_s;
@@ -269,6 +285,7 @@ void Px4ActionExecutor::resume(const std::string & action_id, const double now_s
   if (active_ && active_->intent.action_id == action_id && active_->paused) {
     active_->paused_duration_s += std::max(0.0, now_s - active_->paused_at_s);
     active_->paused = false;
+    active_->pause_target.reset();
     active_->feedback.status = mission_core::ActionStatus::running;
     active_->feedback.at_s = now_s;
   }
@@ -290,12 +307,23 @@ void Px4ActionExecutor::apply_active_command(const double now_s)
     if (world_.landed) {
       offboard_.apply({std::nullopt, std::optional<std::string>("MANUAL"), false}, now_s);
     } else {
-      offboard_.apply({std::nullopt, std::optional<std::string>("AUTO.LAND"), true}, now_s);
+      offboard_.apply({std::nullopt, std::optional<std::string>("AUTO.LAND"), std::nullopt}, now_s);
     }
     return;
   }
   const double elapsed_s = std::max(
     0.0, now_s - active_->started_at_s - active_->paused_duration_s);
+  if (active_->paused) {
+    if (world_.armed && active_->pause_target) {
+      const auto & target = *active_->pause_target;
+      common::PositionSetpoint setpoint;
+      setpoint.x_m = target.x_m; setpoint.y_m = target.y_m; setpoint.z_m = target.z_m;
+      setpoint.orientation = common::normalize_quaternion(
+        0.0, 0.0, std::sin(target.yaw_rad / 2.0), std::cos(target.yaw_rad / 2.0));
+      offboard_.apply({setpoint, std::nullopt, std::nullopt}, now_s);
+    }
+    return;
+  }
   if (active_->intent.capability == "takeoff" && elapsed_s < offboard_warmup_s_) {
     if (world_.position.valid) {
       common::PositionSetpoint setpoint;
@@ -310,15 +338,18 @@ void Px4ActionExecutor::apply_active_command(const double now_s)
     return;
   }
   if (active_->target) {
+    // Wait for the confirmed mode before ARM. Keep the ground setpoint until
+    // the armed heartbeat arrives, then expose the climb target to PX4.
+    const bool awaiting_arm = active_->intent.capability == "takeoff" && !world_.armed;
+    const auto & target = awaiting_arm ? world_.position : *active_->target;
     common::PositionSetpoint setpoint;
-    setpoint.x_m = active_->target->x_m;
-    setpoint.y_m = active_->target->y_m;
-    setpoint.z_m = active_->target->z_m;
+    setpoint.x_m = target.x_m;
+    setpoint.y_m = target.y_m;
+    setpoint.z_m = target.z_m;
     setpoint.orientation = common::normalize_quaternion(
-      0.0, 0.0, std::sin(active_->target->yaw_rad / 2.0),
-      std::cos(active_->target->yaw_rad / 2.0));
+      0.0, 0.0, std::sin(target.yaw_rad / 2.0), std::cos(target.yaw_rad / 2.0));
     offboard_.apply({setpoint, std::optional<std::string>("OFFBOARD"),
-      active_->intent.capability == "takeoff" ? std::optional<bool>(true) : std::nullopt}, now_s);
+      awaiting_arm && world_.mode == "OFFBOARD" ? std::optional<bool>(true) : std::nullopt}, now_s);
   }
 }
 
@@ -338,6 +369,16 @@ void Px4ActionExecutor::update(
 {
   world_ = world;
   if (!active_) {return;}
+  if (active_->feedback.status == mission_core::ActionStatus::succeeded ||
+    active_->feedback.status == mission_core::ActionStatus::failed ||
+    active_->feedback.status == mission_core::ActionStatus::cancelled)
+  {
+    // Retain a completed position target while waiting for the next action,
+    // but never re-arm or restart a terminal action after landing.
+    if (active_->feedback.status == mission_core::ActionStatus::succeeded &&
+      world_.armed && active_->target) {apply_active_command(now_s);}
+    return;
+  }
   apply_active_command(now_s);
   if (active_->safety_land) {
     if (world_.landed && !world_.armed) {
@@ -349,7 +390,9 @@ void Px4ActionExecutor::update(
   active_->feedback.status = mission_core::ActionStatus::running;
   active_->feedback.at_s = now_s;
   if (active_->target && (active_->intent.capability == "navigate" ||
-    active_->intent.capability == "takeoff") && target_reached(*active_->target))
+    active_->intent.capability == "takeoff") && target_reached(*active_->target) &&
+    (active_->intent.capability != "takeoff" ||
+    (world_.armed && !world_.landed && world_.mode == "OFFBOARD")))
   {
     finish(mission_core::ActionStatus::succeeded, {}, now_s);
     return;

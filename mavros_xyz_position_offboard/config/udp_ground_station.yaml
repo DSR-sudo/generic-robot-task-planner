@@ -110,7 +110,7 @@ mavros_native_xyz_position:
       max_flight_seconds: 120.0
 
       # 认为光流对水平定位有效所需的最小测距高度，单位：米。
-      flow_effective_min_height_m: 0.15
+      flow_effective_min_height_m: 0.02
       # 认为光流对水平定位有效所需的最小质量值。
       flow_effective_min_quality: 20
       # true 表示忽略传感器声明的最小量程，仅使用 configured_min_range_m。

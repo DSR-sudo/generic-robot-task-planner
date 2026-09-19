@@ -105,7 +105,7 @@ struct SafetyConfig
   double target_tolerance_m{0.04};
   double touchdown_z_tolerance_m{0.08};
   double max_flight_seconds{60.0};
-  double flow_effective_min_height_m{0.35};
+  double flow_effective_min_height_m{0.02};
   int flow_effective_min_quality{20};
   bool ignore_declared_min_range{true};
 

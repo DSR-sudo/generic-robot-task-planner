@@ -5,6 +5,13 @@
       <RequireCapability capability="takeoff"/>
       <ExecuteAction id="takeoff" capability="takeoff" height_m="1.4"/>
       <ExecuteAction id="hold" capability="hold" seconds="5.0"/>
+      <!-- Fixed takeoff frame: x forward, y left, z up. Keep the takeoff heading. -->
+      <RequireCapability capability="navigate"/>
+      <ExecuteAction id="right" capability="navigate" frame="takeoff_flu" x="0" y="-1" z="1.4"/>
+      <ExecuteAction id="back" capability="navigate" frame="takeoff_flu" x="-1" y="-1" z="1.4"/>
+      <ExecuteAction id="left" capability="navigate" frame="takeoff_flu" x="-1" y="0" z="1.4"/>
+      <ExecuteAction id="return" capability="navigate" frame="takeoff_flu" x="0" y="0" z="1.4"/>
+      <ExecuteAction id="hold_return" capability="hold" seconds="2.0"/>
       <RequireCapability capability="land"/>
       <ExecuteAction id="land" capability="land"/>
     </Sequence>

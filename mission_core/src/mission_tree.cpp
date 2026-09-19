@@ -435,13 +435,13 @@ MissionTreeResult MissionTree::tick(
     impl_->runtime_.status = MissionStatus::running;
     impl_->runtime_.started_at_s = world.now_s;
   }
-  executor.update(world, world.now_s, world.dt_s);
   auto safety_decision = safety.evaluate(world, capabilities, impl_->runtime_);
   result.safety = safety_decision;
   if (safety_decision.action == SafetyAction::pause) {
     if (!impl_->runtime_.active_action_id.empty()) {
       executor.pause(impl_->runtime_.active_action_id, world.now_s);
     }
+    executor.update(world, world.now_s, world.dt_s);
     impl_->runtime_.status = MissionStatus::paused;
     result.tree_status = NodeStatus::running;
     result.runtime = impl_->runtime_;
@@ -454,6 +454,7 @@ MissionTreeResult MissionTree::tick(
     if (!impl_->runtime_.active_action_id.empty()) {
       executor.cancel(impl_->runtime_.active_action_id, world.now_s);
     }
+    executor.update(world, world.now_s, world.dt_s);
     impl_->runtime_.status = MissionStatus::failed;
     impl_->runtime_.failure_reason = safety_decision.reason;
     impl_->runtime_.finished_at_s = world.now_s;
@@ -470,6 +471,7 @@ MissionTreeResult MissionTree::tick(
     impl_->runtime_.status = MissionStatus::running;
   }
 
+  executor.update(world, world.now_s, world.dt_s);
   Impl::Context context{world, capabilities, events, executor, impl_->runtime_, {}, {}};
   const auto status = impl_->root_node_->tick(context);
   result.tree_status = status;

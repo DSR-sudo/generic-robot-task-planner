@@ -67,6 +67,9 @@ public:
   void update(
     const mission_core::WorldState & /*world*/, const double now_s, const double /*dt_s*/) override
   {
+    if (active_ && feedback_.status == mission_core::ActionStatus::running) {
+      ++running_updates;
+    }
     if (active_ && feedback_.status == mission_core::ActionStatus::running && now_s >= 1.0) {
       feedback_.status = mission_core::ActionStatus::succeeded;
       feedback_.progress = 1.0;
@@ -86,6 +89,7 @@ public:
   std::optional<mission_core::ActionIntent> active_{};
   mission_core::ActionFeedback feedback_{};
   int submit_count{0};
+  int running_updates{0};
 };
 
 mission_core::WorldState world(double now)
@@ -175,6 +179,34 @@ void test_safety()
   assert(decision.action == mission_core::SafetyAction::emergency);
 }
 
+void test_safety_applies_before_control_update()
+{
+  const auto path = std::filesystem::temp_directory_path() / "mission_core_safety_order.xml";
+  {
+    std::ofstream output(path);
+    output << R"xml(<root><BehaviorTree ID="MainTree"><ExecuteAction id="wait" capability="wait"/></BehaviorTree></root>)xml";
+  }
+  FakeExecutor executor;
+  mission_core::MissionTree tree(path.string());
+  mission_core::SafetyConfig config;
+  config.pause_when_fact_false = {"lcp_healthy"};
+  mission_core::SafetySupervisor safety(config);
+  auto state = world(0.0);
+  tree.tick(state, executor.capabilities(state), {}, executor, safety);
+  state = world(0.1); state.facts["lcp_healthy"] = false;
+  auto result = tree.tick(state, executor.capabilities(state), {}, executor, safety);
+  assert(result.runtime.status == mission_core::MissionStatus::paused);
+  assert(executor.running_updates == 0);
+  state = world(0.2); state.facts["lcp_healthy"] = true;
+  tree.tick(state, executor.capabilities(state), {}, executor, safety);
+  assert(executor.running_updates == 1);
+  state = world(0.3); state.connected = false; state.airborne = true;
+  tree.tick(state, executor.capabilities(state), {}, executor, safety);
+  assert(executor.running_updates == 1);
+  assert(executor.feedback_.status == mission_core::ActionStatus::cancelled);
+  std::filesystem::remove(path);
+}
+
 }  // namespace
 
 int main()
@@ -183,6 +215,7 @@ int main()
   test_tree_and_idempotence();
   test_unknown_node();
   test_safety();
+  test_safety_applies_before_control_update();
   std::cout << "mission_core tests passed" << std::endl;
   return 0;
 }

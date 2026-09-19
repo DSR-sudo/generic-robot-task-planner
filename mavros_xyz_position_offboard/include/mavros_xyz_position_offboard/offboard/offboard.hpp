@@ -66,7 +66,7 @@ private:
   void request_arm(bool value, double now);
 
   rclcpp::Node & node_;
-  const common::AppOptions & options_;
+  const common::AppOptions options_;
   bool control_enabled_{false};
   OffboardStatus status_{};
   rclcpp::Publisher<mavros_msgs::msg::PositionTarget>::SharedPtr setpoint_publisher_;

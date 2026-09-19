@@ -79,6 +79,13 @@ std::string optional_number(const std::optional<double> & value)
   return value ? number(*value) : "null";
 }
 
+// Open interval maps deliberately use NaN for unobserved geometry. JSON has
+// no NaN token; keep the valid pose and represent those optional fields as null.
+std::string geometry_number(double value)
+{
+  return std::isnan(value) ? "null" : number(value);
+}
+
 std::string ros_header_json(const RosHeader & header)
 {
   std::ostringstream stream;
@@ -97,9 +104,7 @@ std::string optional_stamp_json(const std::optional<common::RosTimestamp> & stam
 bool finite_xyz_status(const XyzStatus & value)
 {
   const double numbers[] = {
-    value.position_x_m, value.position_y_m, value.yaw_rad, value.front_distance_m,
-    value.rear_distance_m, value.left_distance_m, value.right_distance_m,
-    value.map_size_x_m, value.map_size_y_m};
+    value.position_x_m, value.position_y_m, value.yaw_rad};
   for (const double number_value : numbers) {
     if (!std::isfinite(number_value)) {return false;}
   }
@@ -251,12 +256,12 @@ std::string GroundStationLink::encode_xyzstatus(const XyzStatus & status) const
          << ",\"z_quality\":" << optional_number(status.z_quality)
          << ",\"z_valid\":" << (status.z_valid ? "true" : "false")
          << ",\"yaw_rad\":" << number(status.yaw_rad)
-         << ",\"front_distance_m\":" << number(status.front_distance_m)
-         << ",\"rear_distance_m\":" << number(status.rear_distance_m)
-         << ",\"left_distance_m\":" << number(status.left_distance_m)
-         << ",\"right_distance_m\":" << number(status.right_distance_m)
-         << ",\"map_size_x_m\":" << number(status.map_size_x_m)
-         << ",\"map_size_y_m\":" << number(status.map_size_y_m) << "}}";
+         << ",\"front_distance_m\":" << geometry_number(status.front_distance_m)
+         << ",\"rear_distance_m\":" << geometry_number(status.rear_distance_m)
+         << ",\"left_distance_m\":" << geometry_number(status.left_distance_m)
+         << ",\"right_distance_m\":" << geometry_number(status.right_distance_m)
+         << ",\"map_size_x_m\":" << geometry_number(status.map_size_x_m)
+         << ",\"map_size_y_m\":" << geometry_number(status.map_size_y_m) << "}}";
   return stream.str();
 }
 

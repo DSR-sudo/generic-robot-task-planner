@@ -1,0 +1,7 @@
+# PX4 distance_sensor reported 0.02--6.0 m on this platform (2026-09-13).
+# OPTICAL_FLOW_RAD has no range limits; override the generic PX4Flow sonar
+# defaults so the application and LCP both receive the actual sensor limits.
+/**/px4flow:
+  ros__parameters:
+    ranger_min_range: 0.02
+    ranger_max_range: 6.0

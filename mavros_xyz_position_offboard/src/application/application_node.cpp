@@ -311,7 +311,8 @@ void ApplicationNode::tick_generic()
   auto world = px4_executor_->world();
   world.now_s = now;
   world.dt_s = dt;
-  world.facts["preflight_ready"] = health.preflight_errors.empty() && health.lcp_ready;
+  world.facts["preflight_ready"] = options_.control_enabled &&
+    health.preflight_errors.empty() && health.lcp_ready;
   world.facts["flight_healthy"] = flight_healthy;
   world.facts["lcp_healthy"] = health.lcp_healthy;
   if (!flight_healthy) {

@@ -70,4 +70,22 @@ TEST(GenericUdpTest, EndpointAndInboxConfigurationAreBounded)
   EXPECT_THROW({ GroundStationLink link(config); }, std::invalid_argument);
 }
 
+TEST(GenericUdpTest, OpenMapGeometryIsNullButInvalidPoseIsRejected)
+{
+  GroundStationLink link(test_config());
+  mavros_xyz_position_offboard::communication::XyzStatus status;
+  status.position_x_m = 0.1; status.position_y_m = -0.2; status.yaw_rad = 0.0;
+  status.map_size_x_m = NAN; status.map_size_y_m = NAN;
+  status.front_distance_m = 2.0; status.rear_distance_m = NAN;
+  status.left_distance_m = 1.0; status.right_distance_m = NAN;
+  const auto encoded = link.encode_xyzstatus(status);
+  EXPECT_NE(encoded.find("\"map_size_x_m\":null"), std::string::npos);
+  EXPECT_NE(encoded.find("\"rear_distance_m\":null"), std::string::npos);
+  EXPECT_NE(encoded.find("\"front_distance_m\":2"), std::string::npos);
+  status.position_x_m = NAN;
+  EXPECT_THROW(link.encode_xyzstatus(status), std::invalid_argument);
+  status.position_x_m = 0.0; status.front_distance_m = INFINITY;
+  EXPECT_THROW(link.encode_xyzstatus(status), std::invalid_argument);
+}
+
 }  // namespace
